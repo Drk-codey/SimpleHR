@@ -9,6 +9,7 @@ import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { UnauthorizedPage } from "@/pages/UnauthorizedPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
+import { DepartmentsPage } from "@/features/departments/pages/DepartmentsPage";
 
 const ADMIN_ROLES = ["super_admin", "hr_admin"] as const;
 
@@ -26,7 +27,7 @@ export function AppRoutes() {
           {/* People — directory/profile are open to all (row-scoped by RLS); management is admin-only */}
           <Route path="/employees" element={<PlaceholderPage title="Employees" phase={2} />} />
           <Route element={<RoleGuard allow={[...ADMIN_ROLES]} />}>
-            <Route path="/departments" element={<PlaceholderPage title="Departments" phase={2} />} />
+            <Route path="/departments" element={<DepartmentsPage />} />
             <Route path="/job-roles" element={<PlaceholderPage title="Job Roles" phase={2} />} />
           </Route>
 

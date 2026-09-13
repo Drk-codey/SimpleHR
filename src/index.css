@@ -1,0 +1,78 @@
+@import "@fontsource-variable/public-sans";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm neutral canvas — not stark white, not the beige-cliche tone */
+    --background: 60 9% 97.5%;
+    --foreground: 30 6% 11%;
+
+    --surface: 0 0% 100%;
+    --surface-foreground: 30 6% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 30 6% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 6% 11%;
+
+    --muted: 60 8% 94%;
+    --muted-foreground: 30 4% 43%;
+
+    --border: 40 10% 89%;
+    --input: 40 10% 87%;
+    --ring: 217 26% 30%;
+
+    /* Primary: deep slate-navy. Deliberately not blue-500/purple/gradient. */
+    --primary: 217 32% 27%;
+    --primary-hover: 217 34% 21%;
+    --primary-foreground: 60 9% 98%;
+
+    --accent: 60 8% 94%;
+    --accent-foreground: 30 6% 11%;
+
+    --destructive: 3 62% 42%;
+    --destructive-foreground: 60 9% 98%;
+    --destructive-subtle: 4 72% 95%;
+
+    --success: 150 38% 32%;
+    --success-subtle: 150 40% 94%;
+
+    --warning: 38 84% 36%;
+    --warning-subtle: 44 80% 93%;
+
+    --info: 213 36% 40%;
+    --info-subtle: 213 50% 95%;
+
+    --radius: 0.7rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    background-color: hsl(var(--primary) / 0.15);
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}

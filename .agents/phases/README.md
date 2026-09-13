@@ -9,7 +9,7 @@ This folder tracks every development phase for SimpleHR, from planning to produc
 | 1 | Foundation | ✅ Complete | [phase_1_foundation.md](./phase_1_foundation.md) |
 | 2 | People Core | 🔄 In Progress | [phase_2_people_core.md](./phase_2_people_core.md) |
 | 3 | Leave | ⏳ Planned | [phase_3_leave.md](./phase_3_leave.md) |
-| 4 | Workflows | ⏳ Planned | [phase_4_workflows.md](./phase_4_workflows.md) |
+| 4 | Workflows | In Progress | [phase_4_workflows.md](./phase_4_workflows.md) |
 | 5 | Records & Time | ⏳ Planned | [phase_5_records_and_time.md](./phase_5_records_and_time.md) |
 | 6 | Operations | ⏳ Planned | [phase_6_operations.md](./phase_6_operations.md) |
 | 7 | Hardening | ⏳ Planned | [phase_7_hardening.md](./phase_7_hardening.md) |
@@ -47,3 +47,4 @@ Agent instructions / conventions:
 ```
 .agents/project_instructions.md
 ```
+

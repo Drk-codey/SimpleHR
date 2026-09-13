@@ -26,7 +26,7 @@ export const useCreateDepartment = () => {
     mutationFn: async (newDepartment: { name: string; description?: string | null; department_head_id?: string | null }) => {
       const { data, error } = await supabase
         .from("departments")
-        .insert(newDepartment as any)
+        .insert(newDepartment as never)
         .select()
         .single();
 
@@ -46,7 +46,7 @@ export const useUpdateDepartment = () => {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<{ name: string; description: string | null; department_head_id: string | null; is_active: boolean }> }) => {
       const { data, error } = await supabase
         .from("departments")
-        .update(updates as any)
+        .update(updates as never)
         .eq("id", id)
         .select()
         .single();

@@ -1,16 +1,38 @@
-import { Users, UserCheck, Umbrella, ClipboardList, Cake, UserPlus } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import type { ElementType } from "react";
+import { Link } from "react-router-dom";
+import {
+  Users,
+  UserCheck,
+  Umbrella,
+  ClipboardList,
+  Cake,
+  UserPlus,
+  Award,
+  Activity,
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
+  Legend,
+} from "recharts";
 
-import { useDashboardStats, usePendingLeaveCount } from "../api/employeesApi";
+import { useDashboardStats, type WidgetPerson } from "../api/dashboardApi";
 import { useCurrentProfile } from "@/hooks/useCurrentProfile";
+import { getInitials } from "@/lib/names";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { ErrorState } from "@/components/common/ErrorState";
-
-// Import employees API from the correct module path
-import { useDashboardStats as _unused } from "@/features/employees/api/employeesApi";
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
@@ -19,72 +41,108 @@ const ROLE_LABEL: Record<string, string> = {
   employee: "Employee",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  active: "#22c55e",
-  on_leave: "#f59e0b",
-  suspended: "#ef4444",
-  terminated: "#94a3b8",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  on_leave: "On Leave",
-  suspended: "Suspended",
-  terminated: "Terminated",
-};
-
-const CHART_COLORS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e",
-  "#f97316", "#eab308", "#22c55e", "#14b8a6",
-];
+const CHART_COLORS = ["#1e3a4c", "#3d5a6c", "#5c7a84", "#0f5c56", "#6b5e4f", "#8a7a68", "#4a5560", "#2f4858"];
 
 interface StatCardProps {
   label: string;
   value: number | string;
-  icon: React.ElementType;
+  icon: ElementType;
   description?: string;
-  accent?: string;
 }
 
-function StatCard({ label, value, icon: Icon, description, accent }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, description }: StatCardProps) {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </CardTitle>
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-lg"
-          style={{ backgroundColor: accent ? `${accent}20` : undefined }}
-        >
-          <Icon className="h-4 w-4" style={{ color: accent }} aria-hidden="true" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-bold tabular-nums">{value}</p>
-        {description && (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
       </CardContent>
     </Card>
   );
 }
 
+function PersonRow({ person, extra }: { person: WidgetPerson; extra: string }) {
+  return (
+    <Link
+      to={`/employees/${person.id}`}
+      className="flex items-center gap-3 rounded-md px-1 py-2 hover:bg-muted/60"
+    >
+      <Avatar className="h-8 w-8">
+        <AvatarImage src={person.avatar_url ?? undefined} />
+        <AvatarFallback className="text-xs">
+          {getInitials(person.first_name, person.last_name)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">
+          {person.first_name} {person.last_name}
+        </p>
+        {person.subtitle && (
+          <p className="truncate text-xs text-muted-foreground">{person.subtitle}</p>
+        )}
+      </div>
+      <span className="shrink-0 text-xs text-muted-foreground">{extra}</span>
+    </Link>
+  );
+}
+
+function WidgetList({
+  people,
+  empty,
+  extra,
+}: {
+  people: WidgetPerson[];
+  empty: string;
+  extra: (p: WidgetPerson) => string;
+}) {
+  if (people.length === 0) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <div className="divide-y">
+      {people.slice(0, 6).map((p) => (
+        <PersonRow key={p.id} person={p} extra={extra(p)} />
+      ))}
+    </div>
+  );
+}
+
+function formatShortDate(iso?: string) {
+  if (!iso) return "";
+  try {
+    return format(parseISO(iso), "d MMM");
+  } catch {
+    return iso;
+  }
+}
+
 export function DashboardPage() {
-  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useCurrentProfile();
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: pendingLeave } = usePendingLeaveCount();
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    isError: profileError,
+    refetch: refetchProfile,
+  } = useCurrentProfile();
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDashboardStats();
 
   if (profileLoading) return <LoadingSpinner fullPage label="Loading your dashboard…" />;
   if (profileError || !profile) {
     return <ErrorState description="Couldn't load your profile. Try again." onRetry={() => refetchProfile()} />;
   }
-
-  const isLoadingStats = statsLoading;
+  if (statsError) {
+    return <ErrorState description="Couldn't load dashboard metrics." onRetry={() => refetchStats()} />;
+  }
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      {/* Welcome */}
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight">
@@ -93,82 +151,60 @@ export function DashboardPage() {
           <Badge variant="outline">{ROLE_LABEL[profile.role]}</Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Here's what's happening across your organisation today.
+          A snapshot of people, leave, and upcoming dates.
         </p>
       </div>
 
-      {/* Stat cards */}
-      {isLoadingStats ? (
+      {statsLoading || !stats ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="pt-6">
-                <div className="h-8 w-16 rounded bg-muted animate-pulse" />
+                <div className="h-8 w-16 animate-pulse rounded bg-muted" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard
-            label="Total Employees"
-            value={stats?.total ?? 0}
-            icon={Users}
-            accent="#6366f1"
-          />
-          <StatCard
-            label="Active"
-            value={stats?.active ?? 0}
-            icon={UserCheck}
-            description="currently working"
-            accent="#22c55e"
-          />
-          <StatCard
-            label="On Leave"
-            value={stats?.onLeave ?? 0}
-            icon={Umbrella}
-            accent="#f59e0b"
-          />
+          <StatCard label="Total Employees" value={stats.total} icon={Users} />
+          <StatCard label="Active" value={stats.active} icon={UserCheck} description="currently working" />
+          <StatCard label="On Leave" value={stats.onLeave} icon={Umbrella} />
           <StatCard
             label="Pending Leave"
-            value={pendingLeave ?? 0}
+            value={stats.pendingLeave}
             icon={ClipboardList}
             description="awaiting approval"
-            accent="#ef4444"
           />
           <StatCard
             label="Birthdays Soon"
-            value={stats?.upcomingBirthdays ?? 0}
+            value={stats.upcomingBirthdays.length}
             icon={Cake}
             description="next 7 days"
-            accent="#ec4899"
           />
           <StatCard
             label="New Hires"
-            value={stats?.newHires ?? 0}
+            value={stats.newHires.length}
             icon={UserPlus}
             description="last 30 days"
-            accent="#14b8a6"
           />
         </div>
       )}
 
-      {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Dept breakdown bar chart */}
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Headcount by Department</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingStats ? (
-              <div className="h-48 rounded bg-muted animate-pulse" />
-            ) : !stats?.deptBreakdown?.length ? (
-              <p className="text-sm text-muted-foreground text-center py-10">No data yet</p>
+            {statsLoading || !stats ? (
+              <div className="h-48 animate-pulse rounded bg-muted" />
+            ) : stats.deptBreakdown.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No data yet</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={stats.deptBreakdown} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis
                     type="category"
                     dataKey="name"
@@ -177,13 +213,10 @@ export function DashboardPage() {
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip
-                    cursor={{ fill: "hsl(var(--muted))" }}
-                    contentStyle={{ fontSize: 12, borderRadius: 6 }}
-                  />
+                  <Tooltip cursor={{ fill: "hsl(var(--muted))" }} contentStyle={{ fontSize: 12, borderRadius: 6 }} />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {stats.deptBreakdown.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    {stats.deptBreakdown.map((row) => (
+                      <Cell key={row.name} fill={CHART_COLORS[stats.deptBreakdown.indexOf(row) % CHART_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -192,50 +225,114 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Status breakdown pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">Employment Status Breakdown</CardTitle>
+            <CardTitle className="text-sm font-semibold">Employment Type Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingStats ? (
-              <div className="h-48 rounded bg-muted animate-pulse" />
-            ) : !stats?.statusBreakdown?.length ? (
-              <p className="text-sm text-muted-foreground text-center py-10">No data yet</p>
+            {statsLoading || !stats ? (
+              <div className="h-48 animate-pulse rounded bg-muted" />
+            ) : stats.typeBreakdown.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No data yet</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
-                    data={stats.statusBreakdown}
+                    data={stats.typeBreakdown}
                     dataKey="count"
-                    nameKey="status"
+                    nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={({ status, percent }) =>
-                      `${STATUS_LABEL[status] ?? status} ${(percent * 100).toFixed(0)}%`
-                    }
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     labelLine={false}
                   >
-                    {stats.statusBreakdown.map((entry, i) => (
-                      <Cell
-                        key={i}
-                        fill={STATUS_COLORS[entry.status] ?? CHART_COLORS[i % CHART_COLORS.length]}
-                      />
+                    {stats.typeBreakdown.map((entry, i) => (
+                      <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 6 }}
-                    formatter={(v, name) => [v, STATUS_LABEL[name as string] ?? name]}
-                  />
-                  <Legend
-                    formatter={(value) => STATUS_LABEL[value] ?? value}
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 12 }}
-                  />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Cake className="h-4 w-4" />
+              Upcoming birthdays
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WidgetList
+              people={stats?.upcomingBirthdays ?? []}
+              empty="No birthdays in the next 7 days."
+              extra={(p) =>
+                p.daysUntil === 0 ? "Today" : p.daysUntil === 1 ? "Tomorrow" : `${p.daysUntil}d · ${formatShortDate(p.date)}`
+              }
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Award className="h-4 w-4" />
+              Work anniversaries
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WidgetList
+              people={stats?.workAnniversaries ?? []}
+              empty="No anniversaries in the next 7 days."
+              extra={(p) => `${p.years ?? 0} yr${(p.years ?? 0) === 1 ? "" : "s"}`}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <UserPlus className="h-4 w-4" />
+              New hires
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WidgetList
+              people={stats?.newHires ?? []}
+              empty="No new hires in the last 30 days."
+              extra={(p) => formatShortDate(p.date)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Activity className="h-4 w-4" />
+              Recent HR activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!stats || stats.activity.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nothing recent to show.</p>
+            ) : (
+              <ul className="divide-y">
+                {stats.activity.slice(0, 6).map((item) => (
+                  <li key={item.id} className="py-2">
+                    <p className="text-sm font-medium capitalize">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.detail}
+                      {item.created_at ? ` · ${formatShortDate(item.created_at)}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>

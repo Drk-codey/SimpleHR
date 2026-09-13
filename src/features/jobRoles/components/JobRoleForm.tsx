@@ -53,8 +53,8 @@ export function JobRoleForm({ initialData, onSuccess, onCancel }: JobRoleFormPro
         toast.success("Job role created");
       }
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
     }
   };
 

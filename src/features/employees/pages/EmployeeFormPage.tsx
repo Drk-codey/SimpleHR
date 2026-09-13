@@ -50,6 +50,7 @@ function SelectField({
 }: {
   id: string;
   label: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: any;
   name: string;
   children: React.ReactNode;
@@ -152,8 +153,8 @@ export function EmployeeFormPage({ mode }: EmployeeFormPageProps) {
         toast.success("Employee updated");
         navigate(`/employees/${id}`);
       }
-    } catch (e: any) {
-      toast.error(e.message || "Something went wrong");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
     }
   };
 

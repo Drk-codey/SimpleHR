@@ -144,6 +144,7 @@ export function EmployeeProfilePage() {
             <InfoRow label="Department" value={employee.departments?.name} />
             <InfoRow
               label="Employment Type"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               value={(employee as any).employment_types?.name ?? null}
             />
             <InfoRow label="Status" value={employee.employment_status.replace("_", " ")} />

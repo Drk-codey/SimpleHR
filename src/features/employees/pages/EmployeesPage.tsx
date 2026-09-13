@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, LayoutGrid, List, Plus, UserCircle2 } from "lucide-react";
 
 import { useEmployees } from "../api/employeesApi";
@@ -98,8 +98,11 @@ export function EmployeesPage() {
   const { data: departments } = useDepartments();
   const { isAdmin } = useRole();
 
+  const [searchParams] = useSearchParams();
+  const initialDept = searchParams.get("dept") || "all";
+
   const [search, setSearch] = React.useState("");
-  const [deptFilter, setDeptFilter] = React.useState("all");
+  const [deptFilter, setDeptFilter] = React.useState(initialDept);
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [viewMode, setViewMode] = React.useState<ViewMode>("grid");
 

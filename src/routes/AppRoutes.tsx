@@ -9,7 +9,19 @@ import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { UnauthorizedPage } from "@/pages/UnauthorizedPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
+
+// People
 import { DepartmentsPage } from "@/features/departments/pages/DepartmentsPage";
+import { JobRolesPage } from "@/features/jobRoles/pages/JobRolesPage";
+import { EmployeesPage } from "@/features/employees/pages/EmployeesPage";
+import { EmployeeProfilePage } from "@/features/employees/pages/EmployeeProfilePage";
+import { EmployeeFormPage } from "@/features/employees/pages/EmployeeFormPage";
+
+// Workflows
+import { TasksPage } from "@/features/tasks/pages/TasksPage";
+import { OnboardingOverviewPage } from "@/features/onboarding/pages/OnboardingOverviewPage";
+import { OnboardingTemplatesPage } from "@/features/onboarding/pages/OnboardingTemplatesPage";
+import { EmployeeOnboardingPage } from "@/features/onboarding/pages/EmployeeOnboardingPage";
 
 const ADMIN_ROLES = ["super_admin", "hr_admin"] as const;
 
@@ -24,20 +36,27 @@ export function AppRoutes() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
 
-          {/* People — directory/profile are open to all (row-scoped by RLS); management is admin-only */}
-          <Route path="/employees" element={<PlaceholderPage title="Employees" phase={2} />} />
+          {/* People — directory/profile open to all; management admin-only */}
+          <Route path="/employees" element={<EmployeesPage />} />
+          <Route path="/employees/:id" element={<EmployeeProfilePage />} />
           <Route element={<RoleGuard allow={[...ADMIN_ROLES]} />}>
+            <Route path="/employees/new" element={<EmployeeFormPage mode="create" />} />
+            <Route path="/employees/:id/edit" element={<EmployeeFormPage mode="edit" />} />
             <Route path="/departments" element={<DepartmentsPage />} />
-            <Route path="/job-roles" element={<PlaceholderPage title="Job Roles" phase={2} />} />
+            <Route path="/job-roles" element={<JobRolesPage />} />
           </Route>
 
           {/* Leave */}
           <Route path="/leave/requests" element={<PlaceholderPage title="Leave Requests" phase={3} />} />
           <Route path="/leave/calendar" element={<PlaceholderPage title="Leave Calendar" phase={3} />} />
 
-          {/* Workflows */}
-          <Route path="/onboarding" element={<PlaceholderPage title="Onboarding" phase={4} />} />
-          <Route path="/tasks" element={<PlaceholderPage title="Tasks" phase={4} />} />
+          {/* Workflows: all roles can view scoped records; admins manage templates and assignments. */}
+          <Route path="/onboarding" element={<OnboardingOverviewPage />} />
+          <Route path="/onboarding/:id" element={<EmployeeOnboardingPage />} />
+          <Route element={<RoleGuard allow={[...ADMIN_ROLES]} />}>
+            <Route path="/onboarding/templates" element={<OnboardingTemplatesPage />} />
+          </Route>
+          <Route path="/tasks" element={<TasksPage />} />
 
           {/* Records & time */}
           <Route path="/attendance" element={<PlaceholderPage title="Attendance" phase={5} />} />
@@ -59,3 +78,5 @@ export function AppRoutes() {
     </Routes>
   );
 }
+
+

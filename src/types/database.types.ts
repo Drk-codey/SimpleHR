@@ -483,6 +483,7 @@ export interface Database {
           avatar_url: string | null;
           job_role_id: string | null;
           department_id: string | null;
+          employment_type_id: string | null;
           location: string | null;
           employment_status: EmploymentStatus;
           email: string;

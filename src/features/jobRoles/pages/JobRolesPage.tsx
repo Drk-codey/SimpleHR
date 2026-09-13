@@ -34,8 +34,8 @@ export function JobRolesPage() {
       try {
         await deleteJobRole.mutateAsync(id);
         toast.success("Job role deleted");
-      } catch (e: any) {
-        toast.error(e.message || "Couldn't delete job role");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Couldn't delete job role");
       }
     }
   };

@@ -1,6 +1,6 @@
 # Phase 2 — People Core
 
-**Status:** 🔄 In Progress
+**Status:** ✅ Completed
 **Started:** 2026-09-13
 **Conversation:** 44600f7c-9f66-40a9-9795-cf7496dc089e
 
@@ -22,45 +22,45 @@ Modules:
 ## Checklist
 
 ### Dashboard
-- [ ] Metric cards (total employees, active, on leave, pending leave requests)
-- [ ] Upcoming birthdays widget
-- [ ] Work anniversaries widget
-- [ ] New hires widget
-- [ ] Recent HR activity feed
-- [ ] Department headcount chart (Recharts)
-- [ ] Employment type breakdown chart (Recharts)
-- [ ] Loading & error states
+- [x] Metric cards (total employees, active, on leave, pending leave requests)
+- [x] Upcoming birthdays widget
+- [x] Work anniversaries widget
+- [x] New hires widget
+- [x] Recent HR activity feed
+- [x] Department headcount chart (Recharts)
+- [x] Employment type breakdown chart (Recharts)
+- [x] Loading & error states
 
 ### Employee Directory (`/employees`)
-- [ ] Supabase API — `employeesApi.ts` query functions
-- [ ] Employee list page with grid/card view
-- [ ] Table view toggle
-- [ ] Search by name, email, job title, department
-- [ ] Filter by department, employment status, employment type, location
-- [ ] Sort column headers
-- [ ] Pagination
-- [ ] Employee card (avatar, name, title, dept, location, status, email)
-- [ ] Click → navigate to `/employees/:id`
-- [ ] Add Employee button (admin only)
-- [ ] Empty state
-- [ ] Loading state
-- [ ] Error state
+- [x] Supabase API — `employeesApi.ts` query functions
+- [x] Employee list page with grid/card view
+- [x] Table view toggle
+- [x] Search by name, email, job title, department
+- [x] Filter by department, employment status, employment type, location
+- [x] Sort column headers
+- [x] Pagination
+- [x] Employee card (avatar, name, title, dept, location, status, email)
+- [x] Click → navigate to `/employees/:id`
+- [x] Add Employee button (admin only)
+- [x] Empty state
+- [x] Loading state
+- [x] Error state
 
 ### Employee Profile (`/employees/:id`)
-- [ ] Personal Information section (name, email, phone, DOB, address, emergency contact)
-- [ ] Employment Information section (employee ID, job title, dept, manager, type, status, start/end date, location)
-- [ ] HR Information section (leave balances, onboarding status, notes — HR only)
-- [ ] Edit mode with role-based field restrictions
-- [ ] Avatar upload (Supabase Storage)
-- [ ] Loading & error states
+- [x] Personal Information section (name, email, phone, DOB, address, emergency contact)
+- [x] Employment Information section (employee ID, job title, dept, manager, type, status, start/end date, location)
+- [x] HR Information section (leave balances, onboarding status, notes — HR only)
+- [x] Edit mode with role-based field restrictions
+- [x] Avatar upload (Supabase Storage)
+- [x] Loading & error states
 
 ### Add / Edit Employee (`/employees/new`, `/employees/:id/edit`)
-- [ ] Multi-step or single-page form
-- [ ] Zod validation
-- [ ] Department & job role selects (fetched from DB)
-- [ ] Manager select (employees dropdown)
-- [ ] Employment type select
-- [ ] Submit → creates/updates employee record
+- [x] Multi-step or single-page form
+- [x] Zod validation
+- [x] Department & job role selects (fetched from DB)
+- [x] Manager select (employees dropdown)
+- [x] Employment type select
+- [x] Submit → creates/updates employee record
 
 ### Departments (`/departments`)
 - [x] `departmentsApi.ts` — `useDepartments`, `useCreateDepartment`, `useUpdateDepartment`, `useDeleteDepartment`
@@ -74,9 +74,9 @@ Modules:
 ### Job Roles (`/job-roles`)
 - [x] `jobRolesApi.ts` — `useJobRoles`, `useCreateJobRole`, `useUpdateJobRole`
 - [x] `JobRoleForm.tsx` — create/edit form with department select
-- [ ] `JobRolesPage.tsx` — list view with create/edit dialogs and delete
-- [ ] Route wired up in `AppRoutes.tsx`
-- [ ] Empty state
+- [x] `JobRolesPage.tsx` — list view with create/edit dialogs and delete
+- [x] Route wired up in `AppRoutes.tsx`
+- [x] Empty state
 
 ---
 
@@ -89,13 +89,16 @@ src/features/
     components/DepartmentForm.tsx ✅
     pages/DepartmentsPage.tsx     ✅
   employees/
-    api/employeesApi.ts           ✅ (stub — needs expansion)
+    api/employeesApi.ts           ✅
+    pages/EmployeesPage.tsx       ✅
+    pages/EmployeeProfilePage.tsx ✅
+    pages/EmployeeFormPage.tsx    ✅
   jobRoles/
     api/jobRolesApi.ts            ✅
     components/JobRoleForm.tsx    ✅
-    pages/JobRolesPage.tsx        🔲 TODO
+    pages/JobRolesPage.tsx        ✅
   dashboard/
-    pages/DashboardPage.tsx       ✅ (stub — needs metric data)
+    pages/DashboardPage.tsx       ✅
 ```
 
 ---
@@ -110,22 +113,20 @@ src/features/
 | Departments route | `AppRoutes.tsx` | `/departments` wired to real page, RoleGuard (admin only) |
 | Job Roles API | `jobRolesApi.ts` | `useJobRoles`, `useCreateJobRole`, `useUpdateJobRole` hooks |
 | JobRoleForm | `JobRoleForm.tsx` | Title + department select + description, Zod validation |
-| Employees API (stub) | `employeesApi.ts` | Basic fetch scaffolded — full query/filter needs expanding |
-| Dashboard page (stub) | `DashboardPage.tsx` | Placeholder shell — metric cards/charts not yet wired to live data |
+| JobRolesPage | `JobRolesPage.tsx` | Full list view, create/edit, empty state |
+| Employees API | `employeesApi.ts` | Full query and filter functions |
+| Dashboard page | `DashboardPage.tsx` | Metric cards/charts with real data |
+| Employee Directory | `EmployeesPage.tsx` | Grid/table, search, filter, pagination |
+| Employee Profile | `EmployeeProfilePage.tsx` | All sections, edit mode |
+| Add / Edit Employee | `EmployeeFormPage.tsx` | Validation, selects, form submit |
+| Department Head Assignment | `DepartmentForm.tsx` | Added useEmployees hook for dropdown selection |
+| Department Drill-down | `DepartmentsPage.tsx` | Linked department cards to Employees page using ?dept filter |
 
 ---
 
 ## What's Remaining 🔲
 
-1. **JobRolesPage** — list view page analogous to DepartmentsPage (create/edit dialogs, delete, empty state)
-2. **Wire `/job-roles` route** — replace placeholder with `JobRolesPage`
-3. **Employee Directory page** — full grid + table, search/filter/sort/pagination
-4. **Employee Profile page** — all sections, edit mode, role-scoped field visibility
-5. **Add/Edit Employee form** — multi-field form, all FK dropdowns populated
-6. **Dashboard metrics** — hook up real Supabase queries for all stat cards
-7. **Dashboard charts** — Recharts bar/donut for dept headcount + employment types
-8. **Department head assignment** on DepartmentForm
-9. **Department → employees list** drill-down
+All requirements for Phase 2 are complete.
 
 ---
 
@@ -141,14 +142,14 @@ src/features/
 
 ## Verification (fill in when phase is complete)
 
-- [ ] All routes compile without TypeScript errors
-- [ ] ESLint clean
-- [ ] Departments CRUD works end-to-end (create / edit / delete)
-- [ ] Job Roles CRUD works end-to-end
-- [ ] Employee directory loads and paginates
-- [ ] Search + filter returns correct results
-- [ ] Employee profile renders all sections correctly
-- [ ] HR-only fields are hidden from Employee role
-- [ ] Dashboard metric cards show live data
-- [ ] Charts render with real data
-- [ ] Permission boundary test: Employee cannot open another employee's full HR record via URL
+- [x] All routes compile without TypeScript errors
+- [x] ESLint clean
+- [x] Departments CRUD works end-to-end (create / edit / delete)
+- [x] Job Roles CRUD works end-to-end
+- [x] Employee directory loads and paginates
+- [x] Search + filter returns correct results
+- [x] Employee profile renders all sections correctly
+- [x] HR-only fields are hidden from Employee role
+- [x] Dashboard metric cards show live data
+- [x] Charts render with real data
+- [x] Permission boundary test: Employee cannot open another employee's full HR record via URL

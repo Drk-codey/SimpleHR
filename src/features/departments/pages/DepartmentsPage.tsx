@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Building2, Pencil, Trash2, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { useDepartments, useDeleteDepartment, type Department } from "../api/departmentsApi";
 import { DepartmentForm } from "../components/DepartmentForm";
@@ -75,6 +76,12 @@ export function DepartmentsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" asChild title="View employees">
+                    <Link to={`/employees?dept=${dept.id}`}>
+                      <Users className="h-4 w-4" />
+                    </Link>
+                  </Button>
+
                   <Dialog
                     open={editingDepartment?.id === dept.id}
                     onOpenChange={(isOpen) => {

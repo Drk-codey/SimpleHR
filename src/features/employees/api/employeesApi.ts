@@ -1,19 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import type { Tables, PublicEmployeeDirectoryRow, EmploymentStatus } from "@/types/database.types";
+import type {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  PublicEmployeeDirectoryRow,
+  EmploymentStatus,
+  OnboardingStatus,
+} from "@/types/database.types";
 
 export type Employee = Tables<"employees">;
 
 export type EmployeeWithRelations = Employee & {
-  departments?: { name: string } | null;
-  job_roles?: { title: string } | null;
-  employment_types?: { name: string } | null;
-  manager?: { first_name: string; last_name: string } | null;
+  departments?: { id: string; name: string } | null;
+  job_roles?: { id: string; title: string } | null;
+  employment_types?: { id: string; name: string } | null;
 };
 
-// Fetch for the public directory (view)
+export type DirectoryEmployee = PublicEmployeeDirectoryRow & {
+  department_name: string | null;
+  job_title: string | null;
+  employment_type_name: string | null;
+};
+
+const EMPLOYEE_RELATIONS = `
+  *,
+  departments (id, name),
+  job_roles (id, title),
+  employment_types (id, name)
+`;
+
 export const useEmployeeDirectory = () => {
-  return useQuery({
+  const directory = useQuery({
     queryKey: ["employee_directory"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,21 +43,86 @@ export const useEmployeeDirectory = () => {
       return data as PublicEmployeeDirectoryRow[];
     },
   });
+
+  const departments = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("departments").select("*").order("name");
+      if (error) throw new Error(error.message);
+      return data as Tables<"departments">[];
+    },
+  });
+
+  const jobRoles = useQuery({
+    queryKey: ["job_roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("job_roles").select("id, title");
+      if (error) throw new Error(error.message);
+      return data as { id: string; title: string }[];
+    },
+  });
+
+  const employmentTypes = useQuery({
+    queryKey: ["employment_types"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employment_types")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw new Error(error.message);
+      return data as Tables<"employment_types">[];
+    },
+  });
+
+  const deptMap = new Map((departments.data ?? []).map((d) => [d.id, d.name]));
+  const roleMap = new Map((jobRoles.data ?? []).map((r) => [r.id, r.title]));
+  const typeMap = new Map((employmentTypes.data ?? []).map((t) => [t.id, t.name]));
+
+  const employees: DirectoryEmployee[] | undefined = directory.data?.map((row) => ({
+    ...row,
+    department_name: row.department_id ? (deptMap.get(row.department_id) ?? null) : null,
+    job_title: row.job_role_id ? (roleMap.get(row.job_role_id) ?? null) : null,
+    employment_type_name: row.employment_type_id ? (typeMap.get(row.employment_type_id) ?? null) : null,
+  }));
+
+  return {
+    data: employees,
+    isLoading: directory.isLoading || departments.isLoading || jobRoles.isLoading || employmentTypes.isLoading,
+    isError: directory.isError || departments.isError || jobRoles.isError || employmentTypes.isError,
+    refetch: () => {
+      void directory.refetch();
+      void departments.refetch();
+      void jobRoles.refetch();
+      void employmentTypes.refetch();
+    },
+  };
 };
 
-// Fetch all employees with relations (admin/HR view)
+export const useDirectoryEmployee = (id: string | undefined) => {
+  return useQuery({
+    queryKey: ["employee_directory", id],
+    queryFn: async () => {
+      if (!id) throw new Error("ID is required");
+      const { data, error } = await supabase
+        .from("public_employee_directory")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data as PublicEmployeeDirectoryRow | null;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useEmployees = () => {
   return useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select(`
-          *,
-          departments (name),
-          job_roles (title),
-          employment_types (name)
-        `)
+        .select(EMPLOYEE_RELATIONS)
         .is("deleted_at", null)
         .order("first_name");
 
@@ -49,87 +132,24 @@ export const useEmployees = () => {
   });
 };
 
-// Dashboard stats
-export const useDashboardStats = () => {
+export const useMyEmployee = () => {
   return useQuery({
-    queryKey: ["dashboard_stats"],
+    queryKey: ["employees", "me"],
     queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getUser();
+      const userId = sessionData.user?.id;
+      if (!userId) return null;
       const { data, error } = await supabase
         .from("employees")
-        .select("id, employment_status, date_of_birth, start_date, departments(name)")
-        .is("deleted_at", null);
-
+        .select("id, first_name, last_name, avatar_url")
+        .eq("profile_id", userId)
+        .maybeSingle();
       if (error) throw new Error(error.message);
-
-      const employees = data as (Employee & { departments?: { name: string } | null })[];
-      const today = new Date();
-      const todayMD = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      const sevenDaysLater = new Date(today);
-      sevenDaysLater.setDate(today.getDate() + 7);
-
-      const total = employees.length;
-      const active = employees.filter((e) => e.employment_status === "active").length;
-      const onLeave = employees.filter((e) => e.employment_status === "on_leave").length;
-
-      // Upcoming birthdays (next 7 days)
-      const upcomingBirthdays = employees.filter((e) => {
-        if (!e.date_of_birth) return false;
-        const bday = e.date_of_birth.slice(5); // MM-DD
-        return bday >= todayMD && bday <= `${String(sevenDaysLater.getMonth() + 1).padStart(2, "0")}-${String(sevenDaysLater.getDate()).padStart(2, "0")}`;
-      });
-
-      // New hires (last 30 days)
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      const newHires = employees.filter((e) => new Date(e.start_date) >= thirtyDaysAgo).length;
-
-      // Department breakdown
-      const deptMap: Record<string, number> = {};
-      employees.forEach((e) => {
-        const name = e.departments?.name ?? "No Department";
-        deptMap[name] = (deptMap[name] ?? 0) + 1;
-      });
-      const deptBreakdown = Object.entries(deptMap)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-
-      // Status breakdown
-      const statusMap: Record<string, number> = {};
-      employees.forEach((e) => {
-        statusMap[e.employment_status] = (statusMap[e.employment_status] ?? 0) + 1;
-      });
-      const statusBreakdown = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
-
-      return {
-        total,
-        active,
-        onLeave,
-        newHires,
-        upcomingBirthdays: upcomingBirthdays.length,
-        deptBreakdown,
-        statusBreakdown,
-      };
+      return data as Pick<Employee, "id" | "first_name" | "last_name" | "avatar_url"> | null;
     },
   });
 };
 
-// Pending leave count for dashboard
-export const usePendingLeaveCount = () => {
-  return useQuery({
-    queryKey: ["pending_leave_count"],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("leave_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pending");
-
-      if (error) throw new Error(error.message);
-      return count ?? 0;
-    },
-  });
-};
-
-// Fetch full details of a specific employee
 export const useEmployeeProfile = (id: string | undefined) => {
   return useQuery({
     queryKey: ["employee", id],
@@ -137,19 +157,57 @@ export const useEmployeeProfile = (id: string | undefined) => {
       if (!id) throw new Error("ID is required");
       const { data, error } = await supabase
         .from("employees")
-        .select(`
-          *,
-          departments (id, name),
-          job_roles (id, title),
-          employment_types (id, name)
-        `)
+        .select(EMPLOYEE_RELATIONS)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw new Error(error.message);
-      return data as EmployeeWithRelations;
+      return data as EmployeeWithRelations | null;
     },
     enabled: !!id,
+  });
+};
+
+export type LeaveBalanceRow = Tables<"leave_balances"> & {
+  leave_types?: { name: string; color: string } | null;
+};
+
+export const useEmployeeLeaveBalances = (employeeId: string | undefined) => {
+  return useQuery({
+    queryKey: ["leave_balances", employeeId],
+    queryFn: async () => {
+      if (!employeeId) throw new Error("ID is required");
+      const year = new Date().getFullYear();
+      const { data, error } = await supabase
+        .from("leave_balances")
+        .select("*, leave_types (name, color)")
+        .eq("employee_id", employeeId)
+        .eq("year", year);
+
+      if (error) throw new Error(error.message);
+      return data as LeaveBalanceRow[];
+    },
+    enabled: !!employeeId,
+  });
+};
+
+export const useEmployeeOnboarding = (employeeId: string | undefined) => {
+  return useQuery({
+    queryKey: ["employee_onboarding", employeeId],
+    queryFn: async () => {
+      if (!employeeId) throw new Error("ID is required");
+      const { data, error } = await supabase
+        .from("employee_onboarding")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      return data as (Tables<"employee_onboarding"> & { status: OnboardingStatus }) | null;
+    },
+    enabled: !!employeeId,
   });
 };
 
@@ -157,27 +215,10 @@ export const useCreateEmployee = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newEmployee: {
-      employee_number: string;
-      first_name: string;
-      last_name: string;
-      email: string;
-      start_date: string;
-      preferred_name?: string | null;
-      phone?: string | null;
-      date_of_birth?: string | null;
-      address?: string | null;
-      department_id?: string | null;
-      job_role_id?: string | null;
-      employment_type_id?: string | null;
-      manager_id?: string | null;
-      employment_status?: EmploymentStatus;
-      location?: string | null;
-      notes?: string | null;
-    }) => {
+    mutationFn: async (newEmployee: TablesInsert<"employees">) => {
       const { data, error } = await supabase
         .from("employees")
-        .insert(newEmployee as any)
+        .insert(newEmployee as never)
         .select()
         .single();
 
@@ -187,7 +228,7 @@ export const useCreateEmployee = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employee_directory"] });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 };
@@ -196,10 +237,10 @@ export const useUpdateEmployee = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Employee> }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: TablesUpdate<"employees"> }) => {
       const { data, error } = await supabase
         .from("employees")
-        .update(updates as any)
+        .update(updates as never)
         .eq("id", id)
         .select()
         .single();
@@ -211,7 +252,36 @@ export const useUpdateEmployee = () => {
       queryClient.invalidateQueries({ queryKey: ["employee_directory"] });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["employee", data.id] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["employees", "me"] });
+    },
+  });
+};
+
+export const useUploadEmployeeAvatar = () => {
+  const queryClient = useQueryClient();
+  const updateEmployee = useUpdateEmployee();
+
+  return useMutation({
+    mutationFn: async ({ employeeId, file }: { employeeId: string; file: File }) => {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `${employeeId}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = `${publicUrl.publicUrl}?t=${Date.now()}`;
+
+      await updateEmployee.mutateAsync({ id: employeeId, updates: { avatar_url: avatarUrl } });
+      return avatarUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employee"] });
+      queryClient.invalidateQueries({ queryKey: ["employee_directory"] });
     },
   });
 };
@@ -231,3 +301,5 @@ export const useEmploymentTypes = () => {
     },
   });
 };
+
+export type { EmploymentStatus };

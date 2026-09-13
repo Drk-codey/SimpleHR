@@ -31,7 +31,7 @@ export const useCreateJobRole = () => {
     mutationFn: async (newRole: { title: string; department_id: string; description?: string | null; default_employment_type_id?: string | null }) => {
       const { data, error } = await supabase
         .from("job_roles")
-        .insert(newRole as any)
+        .insert(newRole as never)
         .select()
         .single();
 
@@ -51,7 +51,7 @@ export const useUpdateJobRole = () => {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<{ title: string; department_id: string; description: string | null; is_active: boolean }> }) => {
       const { data, error } = await supabase
         .from("job_roles")
-        .update(updates as any)
+        .update(updates as never)
         .eq("id", id)
         .select()
         .single();

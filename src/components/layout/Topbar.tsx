@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentProfile } from "@/hooks/useCurrentProfile";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
@@ -64,6 +65,9 @@ export function Topbar() {
 
       <div className="hidden lg:block" />
 
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2.5 rounded-md py-1 pl-1 pr-2 hover:bg-muted focus-visible:focus-ring">
@@ -87,6 +91,8 @@ export function Topbar() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }
+
